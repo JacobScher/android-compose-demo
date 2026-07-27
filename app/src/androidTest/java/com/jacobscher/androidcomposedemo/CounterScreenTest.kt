@@ -1,5 +1,9 @@
 package com.jacobscher.androidcomposedemo
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -13,7 +17,7 @@ import org.junit.runner.RunWith
 
 /**
  * Instrumented Compose UI tests for the counter screen.
- * Uses testTags for reliable node selection.
+ * Uses testTags for reliable node selection and mutable state for interaction verification.
  */
 @RunWith(AndroidJUnit4::class)
 class CounterScreenTest {
@@ -41,23 +45,50 @@ class CounterScreenTest {
 
     @Test
     fun incrementButtonIncreasesCount() {
-        var count = 0
         composeTestRule.setContent {
+            var count by remember { mutableIntStateOf(0) }
+
             AndroidComposeDemoTheme {
                 CounterContent(
                     count = count,
                     onIncrement = { count++ },
-                    onDecrement = {},
-                    onReset = {}
+                    onDecrement = { if (count > 0) count-- },
+                    onReset = { count = 0 }
                 )
             }
         }
 
-        // Note: because count is a local var captured, we need to recompose or use a state holder.
-        // For simplicity this demonstrates the interaction; in real apps prefer ViewModel + collectAsState.
+        composeTestRule.onNodeWithTag("count_text").assertTextEquals("Count: 0")
+
         composeTestRule.onNodeWithTag("increment_button").performClick()
-        // After click the lambda runs but UI needs update - this is a basic interaction test.
-        // Full state tests are better done with a real ViewModel or mutableState.
+        composeTestRule.onNodeWithTag("count_text").assertTextEquals("Count: 1")
+
+        composeTestRule.onNodeWithTag("increment_button").performClick()
+        composeTestRule.onNodeWithTag("count_text").assertTextEquals("Count: 2")
+    }
+
+    @Test
+    fun decrementAndResetWork() {
+        composeTestRule.setContent {
+            var count by remember { mutableIntStateOf(3) }
+
+            AndroidComposeDemoTheme {
+                CounterContent(
+                    count = count,
+                    onIncrement = { count++ },
+                    onDecrement = { if (count > 0) count-- },
+                    onReset = { count = 0 }
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("count_text").assertTextEquals("Count: 3")
+
+        composeTestRule.onNodeWithTag("decrement_button").performClick()
+        composeTestRule.onNodeWithTag("count_text").assertTextEquals("Count: 2")
+
+        composeTestRule.onNodeWithTag("reset_button").performClick()
+        composeTestRule.onNodeWithTag("count_text").assertTextEquals("Count: 0")
     }
 
     @Test
